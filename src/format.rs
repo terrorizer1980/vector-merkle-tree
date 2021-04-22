@@ -1,4 +1,4 @@
-use super::{hash, Error, Node};
+use super::{hash, Bytes32, Error, Node};
 use faster_hex::hex_decode;
 use std::convert::TryInto;
 
@@ -20,10 +20,15 @@ pub(crate) fn hex_to_node(core_transfer_state: &str) -> Result<Node, Error> {
     Ok(node)
 }
 
+pub(crate) fn hex_encode(data: Bytes32) -> String {
+    let mut s = "0".repeat(64);
+    faster_hex::hex_encode(&data, unsafe { &mut s.as_bytes_mut() }).unwrap();
+    s
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_utils::*;
 
     /// Verifies that the merkle leaves contain the same data as the TypeScript implementation.
     #[test]

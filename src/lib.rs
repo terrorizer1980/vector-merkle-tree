@@ -1,5 +1,9 @@
 use std::cell::RefCell;
 
+use faster_hex::hex_decode;
+use format::hex_encode;
+use wasm_bindgen::prelude::*;
+
 thread_local! {
     // TODO: (Performance)
     // This scratch is way too big. If using depth-first traversal
@@ -26,16 +30,43 @@ pub(crate) struct Node {
     transfer_id: Bytes32,
 }
 
+#[wasm_bindgen]
 #[derive(Debug, Clone)]
 pub struct Tree {
     leaves: Vec<Node>,
 }
 
+#[wasm_bindgen]
 impl Tree {
     pub fn new() -> Self {
         Self { leaves: Vec::new() }
     }
 
+    pub fn insert_hex_js(&mut self, core_transfer_state: &str) -> Result<(), JsValue> {
+        self.insert_hex(core_transfer_state)
+            .map_err(|e| JsValue::from_str(&format!("{}", e)))
+    }
+
+    pub fn delete_id_js(&mut self, transfer_id: &str) -> Result<(), JsValue> {
+        if transfer_id.len() != 66 || &transfer_id[..2] != "0x" {
+            return Err(JsValue::from_str("Invalid transfer id"));
+        }
+        let mut bytes = Bytes32::default();
+        hex_decode(transfer_id.as_bytes(), &mut bytes)
+            .map_err(|_| JsValue::from_str("Invalid transfer id"))?;
+
+        self.delete_id(bytes)
+            .map_err(|_| JsValue::from_str("Transfer id not found"))
+    }
+
+    pub fn root_js(&self) -> JsValue {
+        let root = self.root();
+        let s = "0x".to_owned() + &hex_encode(root);
+        JsValue::from_str(&s)
+    }
+}
+
+impl Tree {
     fn insert_node(&mut self, node: Node) -> Result<(), Error> {
         let index = match self
             .leaves
