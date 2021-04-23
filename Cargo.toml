@@ -10,3 +10,6 @@ edition = "2018"
 tiny-keccak = { version = "2.0", features = ["keccak"] }
 faster-hex = "0.5.0"
 wasm-bindgen = "0.2.73"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
