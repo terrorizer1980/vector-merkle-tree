@@ -1,6 +1,6 @@
 {
   "name": "@connext/vector-merkle-tree",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A merkle tree implementation tailored for Connext Vector transfers",
   "repository": "https://github.com/connext/vector-merkle-tree",
   "license": "MIT",
