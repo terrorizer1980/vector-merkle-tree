@@ -43,11 +43,13 @@ impl Tree {
         Self { leaves: Vec::new() }
     }
 
+    #[wasm_bindgen(js_name = insertHex)]
     pub fn insert_hex_js(&mut self, core_transfer_state: &str) -> Result<(), JsValue> {
         self.insert_hex(core_transfer_state)
             .map_err(|e| JsValue::from_str(&format!("{}", e)))
     }
 
+    #[wasm_bindgen(js_name = deleteId)]
     pub fn delete_id_js(&mut self, transfer_id: &str) -> Result<(), JsValue> {
         if transfer_id.len() != 66 || &transfer_id[..2] != "0x" {
             return Err(JsValue::from_str("Invalid transfer id"));
@@ -56,10 +58,11 @@ impl Tree {
         hex_decode(transfer_id.as_bytes(), &mut bytes)
             .map_err(|_| JsValue::from_str("Invalid transfer id"))?;
 
-        self.delete_id(bytes)
-            .map_err(|_| JsValue::from_str("Transfer id not found"))
+        self.delete_id(bytes);
+        Ok(())
     }
 
+    #[wasm_bindgen(js_name = root)]
     pub fn root_js(&self) -> JsValue {
         let root = self.root();
         let s = "0x".to_owned() + &hex_encode(root);
@@ -69,16 +72,22 @@ impl Tree {
 
 impl Tree {
     fn insert_node(&mut self, node: Node) -> Result<(), Error> {
-        let index = match self
+        match self
             .leaves
             .binary_search_by_key(&&node.transfer_id, |n| &n.transfer_id)
         {
             // This structure cannot handle a duplicate transfer ID because there
-            // would not be one canonical ordering.
-            Ok(_) => return Err(Error::DuplicateTransferID),
-            Err(i) => i,
+            // would not be one canonical ordering. But, if the transfer already
+            // exists it can treat this idempotently.
+            Ok(i) => {
+                if node.hash != self.leaves[i].hash {
+                    return Err(Error::DuplicateTransferID);
+                }
+            }
+            Err(i) => {
+                self.leaves.insert(i, node);
+            }
         };
-        self.leaves.insert(index, node);
         Ok(())
     }
 
@@ -89,16 +98,12 @@ impl Tree {
     }
 
     /// Remove the leaf corresponding to the transfer with a given id.
-    pub fn delete_id(&mut self, transfer_id: Bytes32) -> Result<(), ()> {
-        match self
+    pub fn delete_id(&mut self, transfer_id: Bytes32) {
+        if let Ok(i) = self
             .leaves
             .binary_search_by_key(&&transfer_id, |n| &n.transfer_id)
         {
-            Ok(i) => {
-                self.leaves.remove(i);
-                Ok(())
-            }
-            Err(_) => Err(()),
+            self.leaves.remove(i);
         }
     }
 
@@ -282,8 +287,7 @@ mod tests {
             // because the order added will be different.
             let removed = encoded_transfers.swap_remove(idx as usize);
             let transfer_id = hex_to_node(removed).unwrap().transfer_id;
-            assert!(tree.delete_id(transfer_id).is_ok());
-            assert!(tree.delete_id(transfer_id).is_err());
+            tree.delete_id(transfer_id);
 
             let mut copy = Tree::new();
             for transfer in encoded_transfers.iter() {
