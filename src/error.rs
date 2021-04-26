@@ -13,7 +13,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Error::InvalidFormat => write!(f, "Invalid format for encoded core transfer app"),
-            Error::DuplicateTransferID => write!(f, "A transfer must have a canonical state"),
+            Error::DuplicateTransferID => write!(f, "Cannot insert duplicate transfer id"),
         }
     }
 }
