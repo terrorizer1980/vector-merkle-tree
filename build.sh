@@ -6,39 +6,30 @@
 
 set -e
 
-# Check if jq is installed.
-if ! [ -x "$(command -v jq)" ]; then
-    echo "jq is not installed" >& 2
+# Check if 'rollup' is installed.
+if ! [ -x "$(command -v rollup)" ]; then
+    echo "parcel is not installed" >& 2
     exit 1
 fi
 
-# Clean previous packages.
-echo "Cleaning previous packages"
-if [ -d "pkg" ]; then
-    rm -rfv pkg
-fi
+# Clean old builds
+if [ -d pkg ]; then rm -rf pkg; fi
+if [ -d dist ]; then rm -rf dist; fi
 
-if [ -d "pkg-node" ]; then
-    rm -rfv pkg-node
-fi
+# PKG_NAME="vector-merkle-tree"
 
-PKG_NAME="vector-merkle-tree"
+# Build WASM module
+wasm-pack build -t nodejs -d dist/node --out-name index
+wasm-pack build -t bundler -d dist/browser --out-name index
 
-# Build for both targets.
-echo "Building for node"
-wasm-pack build -t nodejs -d pkg-node --out-name $PKG_NAME
-echo "Building for browsesr"
-wasm-pack build -t bundler -d pkg --out-name $PKG_NAME
+# Build browser and server bundle
+# parcel build pkg/index.js --dist-dir dist/browser --target browser
+# parcel build pkg/index.js --dist-dir dist/node --target node
+# ./node_modules/.bin/rollup pkg/index.js --file dist/browser/index.js --plugin wasm --format iife
+# ./node_modules/.bin/rollup pkg/index.js --file dist/node/index.js --plugin wasm --format cjs
 
-# Merge nodejs & browser packages.
-echo "Merging packages"
-cp "pkg-node/${PKG_NAME}.js" "pkg/${PKG_NAME}_main.js"
-if [[ -f "pkg-node/${PKG_NAME}_bg.js" ]]
-then sed "s/require[\(]'\.\/${PKG_NAME}/require\('\.\/${PKG_NAME}_main/" "pkg-node/${PKG_NAME}_bg.js" > "pkg/${PKG_NAME}_bg.js"
-fi
-jq ".files += [\"${PKG_NAME}_bg.js\"]" pkg/package.json \
-    | jq ".main = \"${PKG_NAME}_main.js\"" > pkg/temp.json
-mv pkg/temp.json pkg/package.json
-rm -rf pkg-node
+# # Copy the module into the distributed files
+# cp -R pkg dist/module
 
-echo "Done"
+# Copy package.json as well
+cp package.json dist/package.json
