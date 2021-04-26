@@ -1,6 +1,6 @@
 {
-  "name": "vector-merkle-tree",
-  "version": "0.1.1",
+  "name": "@connext/vector-merkle-tree",
+  "version": "0.0.1",
   "main": "dist/node/index.js",
   "browser": "dist/browser/index.js",
   "scripts": {
