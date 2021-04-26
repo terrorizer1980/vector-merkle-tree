@@ -1,4 +1,4 @@
-# connext/vector-merkle-tree
+# @connext/vector-merkle-tree
 
 A merkle tree implementation tailored for Connext Vector transfers. Written
 in Rust and compiled to WebAssembly for use in Vector server and browser
