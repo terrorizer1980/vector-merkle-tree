@@ -1,6 +1,9 @@
 {
   "name": "vector-merkle-tree",
   "version": "0.1.0",
-  "main": "node/index.js",
-  "browser": "browser/index.js"
+  "main": "dist/node/index.js",
+  "browser": "dist/browser/index.js",
+  "scripts": {
+    "prepare": "./scripts/prepare.sh"
+  }
 }
