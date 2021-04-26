@@ -1,9 +1,13 @@
 {
   "name": "@connext/vector-merkle-tree",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "A merkle tree implementation tailored for Connext Vector transfers",
+  "repository": "https://github.com/connext/vector-merkle-tree",
+  "license": "MIT",
   "main": "dist/node/index.js",
   "browser": "dist/browser/index.js",
   "scripts": {
-    "prepare": "./scripts/prepare.sh"
+    "prepare": "./scripts/prepare.sh",
+    "test": "cargo test"
   }
 }
