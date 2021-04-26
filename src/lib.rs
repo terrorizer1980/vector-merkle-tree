@@ -55,7 +55,7 @@ impl Tree {
             return Err(JsValue::from_str("Invalid transfer id"));
         }
         let mut bytes = Bytes32::default();
-        hex_decode(transfer_id.as_bytes(), &mut bytes)
+        hex_decode(transfer_id[2..].as_bytes(), &mut bytes)
             .map_err(|_| JsValue::from_str("Invalid transfer id"))?;
 
         self.delete_id(bytes);
