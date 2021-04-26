@@ -15,6 +15,7 @@ echo
 
 # Build WASM module for Node.js
 wasm-pack build -t nodejs -d dist/node --out-name index
+rm -rf dist/node/package.json dist/node/.gitignore
 
 echo
 echo "========================================================================"
@@ -23,3 +24,4 @@ echo
 
 # Build WASM module for the browser
 wasm-pack build -t bundler -d dist/browser --out-name index
+rm -rf dist/browser/package.json dist/browser/.gitignore
