@@ -1,5 +1,5 @@
 use faster_hex::hex_decode;
-use firestorm::{profile_fn, profile_method, profile_section};
+use firestorm::{profile_method, profile_section};
 use format::hex_encode;
 use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
@@ -145,27 +145,30 @@ impl Tree {
             // Profiling has demonstrated that this takes a negligable amount
             // of time, so this is not urgent.
 
-            let mut scratch = &mut scratch[..self.hashes.len()];
+            unsafe {
+                let mut scratch = scratch.get_unchecked_mut(..);
 
-            while scratch.len() > 1 {
-                let mut write = 0;
-                let mut read = 0;
-                while read + 1 < scratch.len() {
-                    let a = scratch[read];
-                    let b = scratch[read + 1];
-                    read += 2;
-                    scratch[write] = hash::combine(&a, &b);
-                    write += 1;
-                }
-                if read < scratch.len() {
-                    scratch[write] = scratch[read];
-                    write += 1;
+                while scratch.len() > 1 {
+                    let mut write = 0;
+                    let mut read = 0;
+                    let end = scratch.len() - 1;
+                    while read < end {
+                        let a = scratch.get_unchecked(read);
+                        let b = scratch.get_unchecked(read + 1);
+                        *scratch.get_unchecked_mut(write) = hash::combine(a, b);
+                        read += 2;
+                        write += 1;
+                    }
+                    if read < scratch.len() {
+                        *scratch.get_unchecked_mut(write) = *scratch.get_unchecked(read);
+                        write += 1;
+                    }
+
+                    scratch = scratch.get_unchecked_mut(0..write);
                 }
 
-                scratch = &mut scratch[0..write];
+                *scratch.get_unchecked(0)
             }
-
-            scratch[0]
         })
     }
 }
@@ -174,6 +177,7 @@ impl Tree {
 mod tests {
     use super::*;
 
+    use firestorm::profile_fn;
     use format::hex_to_node;
     use std::time::Instant;
     use test_utils::*;
