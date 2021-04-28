@@ -1,7 +1,7 @@
-use std::cell::RefCell;
-
 use faster_hex::hex_decode;
+use firestorm::{profile_fn, profile_method, profile_section};
 use format::hex_encode;
+use std::cell::RefCell;
 use wasm_bindgen::prelude::*;
 
 thread_local! {
@@ -77,6 +77,8 @@ impl Tree {
 
 impl Tree {
     fn insert_node(&mut self, node: Node) -> Result<(), Error> {
+        profile_method!(insert_node);
+
         let Node { transfer_id, hash } = node;
         match self.transfer_ids.binary_search(&transfer_id) {
             // This structure cannot handle a duplicate transfer ID because there
@@ -97,12 +99,16 @@ impl Tree {
 
     /// Insert a leaf with the given transfer state.
     pub fn insert_hex(&mut self, core_transfer_state: &str) -> Result<(), Error> {
+        profile_method!(insert_hex);
+
         let node = format::hex_to_node(core_transfer_state)?;
         self.insert_node(node)
     }
 
     /// Remove the leaf corresponding to the transfer with a given id.
     pub fn delete_id(&mut self, transfer_id: Bytes32) {
+        profile_method!(delete_id);
+
         if let Ok(i) = self.transfer_ids.binary_search(&transfer_id) {
             self.transfer_ids.remove(i);
             self.hashes.remove(i);
@@ -114,6 +120,8 @@ impl Tree {
     /// update, fail, and finally need to roll back. To roll back the best thing to
     /// do is just to delete without calculating the root.
     pub fn root(&self) -> Bytes32 {
+        profile_method!(root);
+
         if self.hashes.len() == 0 {
             return Default::default();
         }
@@ -121,15 +129,21 @@ impl Tree {
         SCRATCH.with(|scratch| {
             let mut scratch = scratch.borrow_mut();
             scratch.truncate(0);
-            scratch.extend_from_slice(&self.hashes);
 
-            // TODO: (Performance) This is one of those rare cases where the
+            {
+                profile_section!(unnecessary_copy);
+                scratch.extend_from_slice(&self.hashes);
+            }
+
+            // (Performance) This is one of those rare cases where the
             // borrow checker is getting in the way of performance. What we want
             // is for on the first iteration to read from &self.hashes and write
             // to scratch. Then on further iterations to read and write using
             // scratch. Separating read/write in this way though would lead to
             // aliasing problems. Doing this would remove the need for the copy
             // (above) and reduce the size of the scratch by half.
+            // Profiling has demonstrated that this takes a negligable amount
+            // of time, so this is not urgent.
 
             let mut scratch = &mut scratch[..self.hashes.len()];
 
@@ -166,7 +180,15 @@ mod tests {
 
     #[test]
     #[ignore]
+    fn benchmark() {
+        firestorm::bench("./firestorm", speed).unwrap();
+    }
+
+    #[test]
+    #[ignore]
     fn speed() {
+        profile_fn!(speed);
+
         let start = Instant::now();
         let mut tree = Tree::new();
         let mut break_optimizer = [0u8; 32];
